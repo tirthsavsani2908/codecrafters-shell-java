@@ -25,12 +25,16 @@ public class Main {
 
 
             else if (cmd.equals("echo")) {
+
                 System.out.println(String.join(" ", p.subList(1, p.size())));
+
             }
 
 
             else if (cmd.equals("pwd")) {
+
                 System.out.println(current.getCanonicalPath());
+
             }
 
 
@@ -42,16 +46,22 @@ public class Main {
 
                 if (path.equals("~"))
                     d = new File(System.getenv("HOME"));
+
                 else if (path.startsWith("/"))
                     d = new File(path);
+
                 else
                     d = new File(current, path);
 
 
                 if (d.exists() && d.isDirectory())
+
                     current = d.getCanonicalFile();
+
                 else
+
                     System.out.println("cd: " + path + ": No such file or directory");
+
             }
 
 
@@ -59,34 +69,55 @@ public class Main {
 
                 String c = p.get(1);
 
-                if (c.equals("echo") || c.equals("exit") ||
-                    c.equals("type") || c.equals("pwd") ||
+
+                if (c.equals("echo") ||
+                    c.equals("exit") ||
+                    c.equals("type") ||
+                    c.equals("pwd") ||
                     c.equals("cd")) {
+
 
                     System.out.println(c + " is a shell builtin");
 
+
                 } else {
+
 
                     String e = find(c);
 
+
                     if (e != null)
+
                         System.out.println(c + " is " + e);
+
                     else
+
                         System.out.println(c + ": not found");
+
                 }
             }
 
 
             else {
 
-                if (find(cmd) != null) {
+
+                String exe = find(cmd);
+
+
+                if (exe != null) {
+
 
                     ProcessBuilder pb = new ProcessBuilder(p);
+
                     pb.directory(current);
+
                     pb.inheritIO();
+
                     pb.start().waitFor();
 
+
                 } else {
+
 
                     System.out.println(cmd + ": command not found");
 
@@ -120,7 +151,6 @@ public class Main {
 
                 }
 
-
                 else if (dq) {
 
 
@@ -138,13 +168,11 @@ public class Main {
 
                 }
 
-
                 else {
 
                     w.append(s.charAt(++i));
 
                 }
-
             }
 
 
@@ -168,6 +196,7 @@ public class Main {
                 if (w.length() > 0) {
 
                     r.add(w.toString());
+
                     w.setLength(0);
 
                 }
@@ -184,6 +213,7 @@ public class Main {
 
 
         if (w.length() > 0)
+
             r.add(w.toString());
 
 
@@ -196,17 +226,24 @@ public class Main {
 
         String path = System.getenv("PATH");
 
+
         if (path == null)
+
             return null;
 
 
         for (String d : path.split(File.pathSeparator)) {
 
+
             Path p = Path.of(d, cmd);
 
+
             if (Files.exists(p) && Files.isExecutable(p))
+
                 return p.toString();
+
         }
+
 
         return null;
     }
