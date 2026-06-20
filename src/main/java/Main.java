@@ -5,7 +5,6 @@ import java.nio.file.*;
 public class Main {
 
     static File current = new File(System.getProperty("user.dir"));
-    static int jobId = 1;
     static ArrayList<Job> jobs = new ArrayList<>();
 
 
@@ -379,7 +378,7 @@ public class Main {
 
 
                     Job j=new Job(
-                            jobId++,
+                            nextJobId(),
                             p.pid(),
                             String.join(" ",t),
                             p
@@ -411,6 +410,24 @@ public class Main {
 
 
 
+
+
+
+    // Computes the job number for a newly started background job. Job
+    // numbers are recycled rather than growing forever: if the table is
+    // empty the next job starts at [1]; otherwise it's one more than the
+    // highest job number currently in the table.
+    static int nextJobId() {
+
+        int max = 0;
+
+        for(Job j : jobs)
+            if(j.id > max)
+                max = j.id;
+
+        return max + 1;
+
+    }
 
 
 
