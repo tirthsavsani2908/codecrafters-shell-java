@@ -3,58 +3,67 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 
 public class Main {
+
     public static void main(String[] args) throws Exception {
 
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
             System.out.print("$ ");
+
             String input = scanner.nextLine();
+
+            if (input.equals("exit")) {
+                break;
+            }
 
             String[] parts = input.split(" ");
             String command = parts[0];
 
-            if (command.equals("exit")) {
-                break;
-            } 
-            else if (command.equals("echo")) {
+            if (command.equals("echo")) {
                 System.out.println(input.substring(5));
-            } 
+            }
+
             else if (command.equals("type")) {
+
+                if (parts.length < 2) {
+                    continue;
+                }
 
                 String cmd = parts[1];
 
                 if (cmd.equals("echo") || cmd.equals("exit") || cmd.equals("type")) {
                     System.out.println(cmd + " is a shell builtin");
-                } 
-                else {
-                    String path = findExecutable(cmd);
+                } else {
+                    String executablePath = findExecutable(cmd);
 
-                    if (path != null) {
-                        System.out.println(cmd + " is " + path);
+                    if (executablePath != null) {
+                        System.out.println(cmd + " is " + executablePath);
                     } else {
                         System.out.println(cmd + ": not found");
                     }
                 }
-            } 
+            }
+
             else {
 
-                String executable = findExecutable(command);
+                String executablePath = findExecutable(command);
 
-                if (executable != null) {
+                if (executablePath != null) {
 
-                    ArrayList<String> commandArgs = new ArrayList<>();
+                    List<String> processCommand = new ArrayList<>();
 
-                    commandArgs.add(executable);
+                    // Use command name, not full path
+                    processCommand.add(command);
 
                     for (int i = 1; i < parts.length; i++) {
-                        commandArgs.add(parts[i]);
+                        processCommand.add(parts[i]);
                     }
 
-                    ProcessBuilder pb = new ProcessBuilder(commandArgs);
+                    ProcessBuilder pb = new ProcessBuilder(processCommand);
                     pb.inheritIO();
 
                     Process process = pb.start();
@@ -69,22 +78,22 @@ public class Main {
         scanner.close();
     }
 
-
     static String findExecutable(String command) {
 
-        String path = System.getenv("PATH");
+        String pathEnv = System.getenv("PATH");
 
-        if (path != null) {
+        if (pathEnv == null) {
+            return null;
+        }
 
-            String[] directories = path.split(File.pathSeparator);
+        String[] directories = pathEnv.split(File.pathSeparator);
 
-            for (String dir : directories) {
+        for (String dir : directories) {
 
-                Path file = Path.of(dir, command);
+            Path filePath = Path.of(dir, command);
 
-                if (Files.exists(file) && Files.isExecutable(file)) {
-                    return file.toAbsolutePath().toString();
-                }
+            if (Files.exists(filePath) && Files.isExecutable(filePath)) {
+                return filePath.toAbsolutePath().toString();
             }
         }
 
