@@ -31,6 +31,10 @@ public class Main {
 
         while (true) {
 
+            // Automatic reaping: check for completed background jobs and
+            // print their "Done" line before showing the next prompt.
+            reapJobs();
+
             System.out.print("$ ");
 
             List<String> t = parse(sc.nextLine());
@@ -114,12 +118,20 @@ public class Main {
             else if(cmd.equals("jobs")){
 
 
+                // Reap any jobs that completed since the last check. This
+                // uses the same logic as the automatic pre-prompt reaping,
+                // so a "Done" entry is only ever shown once: either here or
+                // automatically before the next prompt, whichever comes first.
+                reapJobs();
+
+
                 int n=jobs.size();
 
 
                 StringBuilder jobsOut = new StringBuilder();
 
-                // print all jobs in job number order
+                // All remaining jobs are guaranteed to still be running,
+                // since completed ones were just reaped above.
                 for(int i=0;i<n;i++){
 
 
@@ -132,36 +144,14 @@ public class Main {
                             " ";
 
 
-
-                    if(!j.process.isAlive()){
-
-
-                        jobsOut.append(String.format(
-                                "[%d]%s  Done                    %s%n",
-                                j.id,
-                                mark,
-                                j.cmd
-                        ));
-
-
-                    }else{
-
-
-                        jobsOut.append(String.format(
-                                "[%d]%s  Running                 %s &%n",
-                                j.id,
-                                mark,
-                                j.cmd
-                        ));
-
-                    }
+                    jobsOut.append(String.format(
+                            "[%d]%s  Running                 %s &%n",
+                            j.id,
+                            mark,
+                            j.cmd
+                    ));
 
                 }
-
-
-
-                // remove finished jobs
-                jobs.removeIf(j -> !j.process.isAlive());
 
 
                 if(out!=null){
@@ -536,6 +526,57 @@ public class Main {
             Files.writeString(p, "");
 
         }
+
+    }
+
+
+
+    // Shared reaping logic: checks all background jobs for completion,
+    // prints a "Done" line (with marker recalculated against the current
+    // job list) for each one that has exited, and removes those jobs from
+    // the table. Called both automatically before every prompt and at the
+    // start of the `jobs` builtin, so a completed job is reported exactly
+    // once, whichever happens first.
+    static void reapJobs() {
+
+        int n = jobs.size();
+
+        if(n == 0)
+            return;
+
+        StringBuilder doneOut = new StringBuilder();
+
+        ArrayList<Job> finished = new ArrayList<>();
+
+        for(int i=0;i<n;i++){
+
+            Job j = jobs.get(i);
+
+            if(!j.process.isAlive()){
+
+                String mark =
+                        (i==n-1) ? "+" :
+                        (i==n-2) ? "-" :
+                        " ";
+
+                doneOut.append(String.format(
+                        "[%d]%s  Done                    %s%n",
+                        j.id,
+                        mark,
+                        j.cmd
+                ));
+
+                finished.add(j);
+
+            }
+
+        }
+
+        jobs.removeAll(finished);
+
+        if(doneOut.length() > 0)
+
+            System.out.print(doneOut);
 
     }
 
