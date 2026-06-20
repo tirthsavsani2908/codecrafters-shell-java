@@ -51,6 +51,66 @@ public class Main {
 
 
 
+            // Pipeline support: if the command line contains one or more
+            // "|" tokens, split into segments (one per command) and wire
+            // each segment's stdout to the next segment's stdin via
+            // ProcessBuilder.startPipeline. Only the final segment's
+            // redirection (>, >>, 2>, 2>>) is honored, matching how a
+            // real shell applies redirection to the last stage of a pipeline.
+            List<List<String>> pipelineSegments = splitByPipe(t);
+
+            if(pipelineSegments.size() > 1){
+
+                List<String> lastSeg = new ArrayList<>(pipelineSegments.get(pipelineSegments.size()-1));
+
+                String pOut=null, pErr=null;
+
+                boolean pOutAppend=false, pErrAppend=false;
+
+                for(int i=0;i<lastSeg.size();i++){
+
+                    String x=lastSeg.get(i);
+
+                    if(x.equals(">") || x.equals("1>")){
+                        pOut=lastSeg.get(i+1);
+                        pOutAppend=false;
+                        lastSeg=new ArrayList<>(lastSeg.subList(0,i));
+                        break;
+                    }
+
+                    if(x.equals(">>") || x.equals("1>>")){
+                        pOut=lastSeg.get(i+1);
+                        pOutAppend=true;
+                        lastSeg=new ArrayList<>(lastSeg.subList(0,i));
+                        break;
+                    }
+
+                    if(x.equals("2>")){
+                        pErr=lastSeg.get(i+1);
+                        pErrAppend=false;
+                        lastSeg=new ArrayList<>(lastSeg.subList(0,i));
+                        break;
+                    }
+
+                    if(x.equals("2>>")){
+                        pErr=lastSeg.get(i+1);
+                        pErrAppend=true;
+                        lastSeg=new ArrayList<>(lastSeg.subList(0,i));
+                        break;
+                    }
+
+                }
+
+                pipelineSegments.set(pipelineSegments.size()-1, lastSeg);
+
+                runPipeline(pipelineSegments, pOut, pOutAppend, pErr, pErrAppend, bg);
+
+                continue;
+
+            }
+
+
+
             String out=null, err=null;
 
             boolean outAppend=false, errAppend=false;
@@ -410,6 +470,128 @@ public class Main {
 
 
 
+
+
+
+    // Splits a token list into pipeline segments on the "|" token.
+    // ["cat","file","|","wc"] -> [["cat","file"], ["wc"]]
+    static List<List<String>> splitByPipe(List<String> t) {
+
+        List<List<String>> segs = new ArrayList<>();
+
+        List<String> cur = new ArrayList<>();
+
+        for(String x : t){
+
+            if(x.equals("|")){
+
+                segs.add(cur);
+                cur = new ArrayList<>();
+
+            }else{
+
+                cur.add(x);
+
+            }
+
+        }
+
+        segs.add(cur);
+
+        return segs;
+
+    }
+
+
+
+    // Runs a pipeline of external commands, connecting each command's
+    // stdout to the next command's stdin via ProcessBuilder.startPipeline.
+    // Redirection (out/err) is only applied to the final command, matching
+    // shell semantics. If any command in the pipeline isn't found, prints
+    // the usual "command not found" message and aborts the whole pipeline.
+    static void runPipeline(List<List<String>> segments, String out, boolean outAppend, String err, boolean errAppend, boolean bg) throws Exception {
+
+        List<ProcessBuilder> pbs = new ArrayList<>();
+
+        for(List<String> seg : segments){
+
+            String c = seg.get(0);
+
+            String exe = find(c);
+
+            if(exe == null){
+
+                System.out.println(c + ": command not found");
+                return;
+
+            }
+
+            ProcessBuilder pb = new ProcessBuilder(seg);
+            pb.directory(current);
+
+            pbs.add(pb);
+
+        }
+
+        ProcessBuilder last = pbs.get(pbs.size()-1);
+
+        if(out != null){
+
+            if(outAppend)
+                last.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(out)));
+            else
+                last.redirectOutput(new File(out));
+
+        }else{
+
+            last.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+
+        }
+
+        for(ProcessBuilder pb : pbs){
+
+            if(pb == last && err != null){
+
+                if(errAppend)
+                    pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(err)));
+                else
+                    pb.redirectError(new File(err));
+
+            }else{
+
+                pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+
+            }
+
+        }
+
+        List<Process> procs = ProcessBuilder.startPipeline(pbs);
+
+        Process lastProc = procs.get(procs.size()-1);
+
+        if(bg){
+
+            StringBuilder cmdStr = new StringBuilder();
+
+            for(int i=0;i<segments.size();i++){
+                if(i>0) cmdStr.append(" | ");
+                cmdStr.append(String.join(" ", segments.get(i)));
+            }
+
+            Job j = new Job(nextJobId(), lastProc.pid(), cmdStr.toString(), lastProc);
+
+            jobs.add(j);
+
+            System.out.println("[" + j.id + "] " + j.pid);
+
+        }else{
+
+            for(Process p : procs)
+                p.waitFor();
+
+        }
+
+    }
 
 
 
