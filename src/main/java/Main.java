@@ -5,48 +5,68 @@ import java.nio.file.*;
 public class Main {
 
     static File cur = new File(System.getProperty("user.dir"));
+    static int job = 1;
 
     public static void main(String[] args) throws Exception {
 
         Scanner s = new Scanner(System.in);
 
-        while (true) {
+        while(true){
 
             System.out.print("$ ");
 
-            List<String> p = parse(s.nextLine());
+            List<String> p=parse(s.nextLine());
 
-            if (p.isEmpty()) continue;
+            if(p.isEmpty()) continue;
 
 
-            String out=null, err=null;
-            boolean appendOut=false, appendErr=false;
+            boolean bg=false;
+
+            if(p.get(p.size()-1).equals("&")){
+
+                bg=true;
+                p=p.subList(0,p.size()-1);
+
+            }
+
+
+            String out=null,err=null;
+
+            boolean appendOut=false,appendErr=false;
 
 
             for(int i=0;i<p.size();i++){
 
-                if(p.get(i).equals(">>") || p.get(i).equals("1>>")){
+
+                if(p.get(i).equals(">>")||p.get(i).equals("1>>")){
+
                     out=p.get(i+1);
                     appendOut=true;
                     p=p.subList(0,i);
                     break;
                 }
 
-                if(p.get(i).equals(">") || p.get(i).equals("1>")){
+
+                if(p.get(i).equals(">")||p.get(i).equals("1>")){
+
                     out=p.get(i+1);
                     appendOut=false;
                     p=p.subList(0,i);
                     break;
                 }
 
+
                 if(p.get(i).equals("2>>")){
+
                     err=p.get(i+1);
                     appendErr=true;
                     p=p.subList(0,i);
                     break;
                 }
 
+
                 if(p.get(i).equals("2>")){
+
                     err=p.get(i+1);
                     appendErr=false;
                     p=p.subList(0,i);
@@ -55,7 +75,9 @@ public class Main {
             }
 
 
+
             String cmd=p.get(0);
+
 
 
             if(cmd.equals("exit"))
@@ -106,7 +128,7 @@ public class Main {
 
 
 
-                if(d.exists() && d.isDirectory())
+                if(d.exists()&&d.isDirectory())
 
                     cur=d.getCanonicalFile();
 
@@ -126,22 +148,20 @@ public class Main {
                 String c=p.get(1);
 
 
-                if(c.equals("echo") ||
-                   c.equals("exit") ||
-                   c.equals("type") ||
-                   c.equals("pwd") ||
-                   c.equals("cd") ||
-                   c.equals("jobs")){
+                if(c.equals("echo")||
+                   c.equals("exit")||
+                   c.equals("type")||
+                   c.equals("pwd")||
+                   c.equals("cd")||
+                   c.equals("jobs"))
 
 
                     System.out.println(c+" is a shell builtin");
 
 
-                }else{
-
+                else{
 
                     String f=find(c);
-
 
                     if(f!=null)
 
@@ -150,7 +170,6 @@ public class Main {
                     else
 
                         System.out.println(c+": not found");
-
                 }
 
             }
@@ -158,8 +177,6 @@ public class Main {
 
 
             else if(cmd.equals("jobs")){
-
-                // empty for now
 
             }
 
@@ -221,10 +238,28 @@ public class Main {
                         );
 
 
-                    pb.start().waitFor();
+
+                    Process pr=pb.start();
+
+
+
+                    if(bg){
+
+                        System.out.println(
+                            "["+job+"] "+pr.pid()
+                        );
+
+                        job++;
+
+                    }else{
+
+                        pr.waitFor();
+
+                    }
 
 
                 }else{
+
 
                     System.out.println(cmd+": command not found");
 
@@ -240,18 +275,15 @@ public class Main {
         if(a)
 
             Files.writeString(
-                Path.of(f),
-                "",
+                Path.of(f),"",
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND
             );
 
         else
 
-            Files.writeString(
-                Path.of(f),
-                ""
-            );
+            Files.writeString(Path.of(f),"");
+
     }
 
 
@@ -263,6 +295,7 @@ public class Main {
 
             System.out.println(x);
             return;
+
         }
 
 
@@ -277,10 +310,8 @@ public class Main {
 
         else
 
-            Files.writeString(
-                Path.of(f),
-                x+"\n"
-            );
+            Files.writeString(Path.of(f),x+"\n");
+
     }
 
 
@@ -305,9 +336,8 @@ public class Main {
 
                     w.append(c);
 
-                else if(dq &&
-                   i+1<s.length() &&
-                   (s.charAt(i+1)=='"' ||
+                else if(dq&&i+1<s.length() &&
+                   (s.charAt(i+1)=='"'||
                     s.charAt(i+1)=='\\'))
 
                     w.append(s.charAt(++i));
@@ -317,7 +347,6 @@ public class Main {
                     w.append(s.charAt(++i));
 
             }
-
 
             else if(c=='\''&&!dq)
 
@@ -331,17 +360,14 @@ public class Main {
 
             else if(c==' '&&!sq&&!dq){
 
-
                 if(w.length()>0){
 
                     r.add(w.toString());
-
                     w.setLength(0);
 
                 }
 
             }
-
 
             else
 
@@ -356,12 +382,12 @@ public class Main {
 
 
         return r;
+
     }
 
 
 
     static String find(String c){
-
 
         String path=System.getenv("PATH");
 
@@ -370,16 +396,14 @@ public class Main {
 
         for(String x:path.split(":")){
 
-
             Path p=Path.of(x,c);
 
 
-            if(Files.exists(p) && Files.isExecutable(p))
+            if(Files.exists(p)&&Files.isExecutable(p))
 
                 return p.toString();
 
         }
-
 
         return null;
     }
