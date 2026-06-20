@@ -117,6 +117,8 @@ public class Main {
                 int n=jobs.size();
 
 
+                StringBuilder jobsOut = new StringBuilder();
+
                 // print all jobs in job number order
                 for(int i=0;i<n;i++){
 
@@ -134,23 +136,23 @@ public class Main {
                     if(!j.process.isAlive()){
 
 
-                        System.out.printf(
+                        jobsOut.append(String.format(
                                 "[%d]%s  Done                    %s%n",
                                 j.id,
                                 mark,
                                 j.cmd
-                        );
+                        ));
 
 
                     }else{
 
 
-                        System.out.printf(
+                        jobsOut.append(String.format(
                                 "[%d]%s  Running                 %s &%n",
                                 j.id,
                                 mark,
                                 j.cmd
-                        );
+                        ));
 
                     }
 
@@ -160,6 +162,20 @@ public class Main {
 
                 // remove finished jobs
                 jobs.removeIf(j -> !j.process.isAlive());
+
+
+                if(out!=null){
+
+                    writeToFile(out, jobsOut.toString(), outAppend);
+
+                }else{
+
+                    System.out.print(jobsOut);
+
+                }
+
+
+                ensureFile(err, errAppend);
 
 
             }
@@ -174,6 +190,8 @@ public class Main {
                         out,
                         outAppend
                 );
+
+                ensureFile(err, errAppend);
 
 
             }
@@ -212,6 +230,10 @@ public class Main {
                             "cd: "+p+": No such file or directory"
                     );
 
+                ensureFile(out, outAppend);
+
+                ensureFile(err, errAppend);
+
 
             }
 
@@ -225,6 +247,8 @@ public class Main {
                         out,
                         outAppend
                 );
+
+                ensureFile(err, errAppend);
 
 
             }
@@ -262,6 +286,10 @@ public class Main {
                         );
 
                 }
+
+                ensureFile(out, outAppend);
+
+                ensureFile(err, errAppend);
 
 
             }
@@ -458,6 +486,56 @@ public class Main {
                     s+"\n"
             );
 
+
+    }
+
+
+
+    // Writes arbitrary content to a file, creating/truncating or appending as needed.
+    static void writeToFile(String f, String content, boolean append) throws Exception {
+
+        if(append)
+
+            Files.writeString(
+                    Path.of(f),
+                    content,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
+            );
+
+        else
+
+            Files.writeString(
+                    Path.of(f),
+                    content
+            );
+
+    }
+
+
+
+    // Ensures a redirect target exists (created/truncated) even when the
+    // builtin command never actually wrote anything to that stream.
+    // Real shells open/truncate (or create, for append mode) the redirect
+    // target as part of setting up the redirection, regardless of whether
+    // the command produces output on that stream.
+    static void ensureFile(String f, boolean append) throws Exception {
+
+        if(f==null)
+            return;
+
+        Path p = Path.of(f);
+
+        if(append){
+
+            if(!Files.exists(p))
+                Files.createFile(p);
+
+        }else{
+
+            Files.writeString(p, "");
+
+        }
 
     }
 
