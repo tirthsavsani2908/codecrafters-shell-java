@@ -23,9 +23,16 @@ public class Main {
             String[] parts = input.split(" ");
             String command = parts[0];
 
+
             if (command.equals("echo")) {
                 System.out.println(input.substring(5));
             }
+
+
+            else if (command.equals("pwd")) {
+                System.out.println(System.getProperty("user.dir"));
+            }
+
 
             else if (command.equals("type")) {
 
@@ -35,9 +42,10 @@ public class Main {
 
                 String cmd = parts[1];
 
-                if (cmd.equals("echo") || cmd.equals("exit") || cmd.equals("type")) {
+                if (cmd.equals("echo") || cmd.equals("exit") || cmd.equals("type") || cmd.equals("pwd")) {
                     System.out.println(cmd + " is a shell builtin");
-                } else {
+                } 
+                else {
                     String executablePath = findExecutable(cmd);
 
                     if (executablePath != null) {
@@ -48,6 +56,7 @@ public class Main {
                 }
             }
 
+
             else {
 
                 String executablePath = findExecutable(command);
@@ -56,7 +65,6 @@ public class Main {
 
                     List<String> processCommand = new ArrayList<>();
 
-                    // Use command name, not full path
                     processCommand.add(command);
 
                     for (int i = 1; i < parts.length; i++) {
@@ -77,6 +85,7 @@ public class Main {
 
         scanner.close();
     }
+
 
     static String findExecutable(String command) {
 
