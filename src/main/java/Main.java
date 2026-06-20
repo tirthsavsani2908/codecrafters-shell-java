@@ -128,51 +128,62 @@ public class Main {
 
 
 
-
             else if(cmd.equals("jobs")){
 
 
-                int size=jobs.size();
-
-
-                for(int i=0;i<size;i++){
+                for(int i=0;i<jobs.size();i++){
 
 
                     Job j=jobs.get(i);
 
 
 
-                    if(j.p.isAlive()){
+                    if(!j.p.isAlive()){
 
 
-                        String mark=" ";
-
-
-                        if(i==size-1)
-
-                            mark="+";
-
-
-                        else if(i==size-2)
-
-                            mark="-";
+                        String mark =
+                            (i==jobs.size()-1) ? "+" :
+                            (i==jobs.size()-2) ? "-" :
+                            " ";
 
 
 
                         System.out.printf(
-                            "[%d]%s  Running                 %s &%n",
+                            "[%d]%s  Done                    %s%n",
                             j.id,
                             mark,
                             j.cmd
                         );
 
+
+
+                        jobs.remove(i);
+
+                        i--;
+
+                        continue;
+
                     }
+
+
+
+                    String mark =
+                        (i==jobs.size()-1) ? "+" :
+                        (i==jobs.size()-2) ? "-" :
+                        " ";
+
+
+
+                    System.out.printf(
+                        "[%d]%s  Running                 %s &%n",
+                        j.id,
+                        mark,
+                        j.cmd
+                    );
 
                 }
 
-
             }
-
 
 
 
@@ -191,7 +202,6 @@ public class Main {
                     ao
                 );
 
-
             }
 
 
@@ -206,7 +216,6 @@ public class Main {
                     out,
                     ao
                 );
-
 
             }
 
@@ -239,7 +248,6 @@ public class Main {
 
 
 
-
                 if(d.exists()&&d.isDirectory())
 
                     cur=d.getCanonicalFile();
@@ -250,7 +258,6 @@ public class Main {
                     System.out.println(
                         "cd: "+path+": No such file or directory"
                     );
-
 
             }
 
@@ -311,10 +318,13 @@ public class Main {
                 if(find(cmd)!=null){
 
 
+
                     ProcessBuilder pb=new ProcessBuilder(p);
 
 
+
                     pb.directory(cur);
+
 
 
 
@@ -328,7 +338,6 @@ public class Main {
                                     new File(out)
                                 )
                             );
-
 
                         else
 
@@ -410,17 +419,18 @@ public class Main {
                         );
 
 
-                    }
 
-                    else
+                    }else{
+
 
                         pr.waitFor();
 
 
+                    }
 
-                }
 
-                else{
+
+                }else{
 
 
                     System.out.println(
@@ -434,6 +444,7 @@ public class Main {
         }
 
     }
+
 
 
 
@@ -475,6 +486,7 @@ public class Main {
             System.out.println(x);
 
             return;
+
         }
 
 
@@ -532,9 +544,8 @@ public class Main {
 
 
                 else if(dq && i+1<s.length() &&
-                    (s.charAt(i+1)=='"' ||
-                     s.charAt(i+1)=='\\'))
-
+                   (s.charAt(i+1)=='"' ||
+                    s.charAt(i+1)=='\\'))
 
                     w.append(s.charAt(++i));
 
@@ -571,6 +582,7 @@ public class Main {
                 }
 
             }
+
 
 
             else
@@ -619,6 +631,7 @@ public class Main {
             if(f.exists()&&f.canExecute())
 
                 return f.getPath();
+
 
         }
 
