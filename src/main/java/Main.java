@@ -8,7 +8,6 @@ public class Main {
     static File current = new File(System.getProperty("user.dir"));
     static ArrayList<Job> jobs = new ArrayList<>();
 
-
     static class Job {
         int id;
         long pid;
@@ -23,11 +22,9 @@ public class Main {
         }
     }
 
-
     public static void main(String[] args) throws Exception {
 
         Scanner sc = new Scanner(System.in);
-
 
         while (true) {
 
@@ -40,14 +37,12 @@ public class Main {
             if (t.isEmpty())
                 continue;
 
-
             boolean bg = false;
 
             if (t.get(t.size()-1).equals("&")) {
                 bg = true;
                 t = t.subList(0,t.size()-1);
             }
-
 
             List<List<String>> pipelineSegments = splitByPipe(t);
 
@@ -101,18 +96,13 @@ public class Main {
 
             }
 
-
-
             String out=null, err=null;
 
             boolean outAppend=false, errAppend=false;
 
-
-
             for(int i=0;i<t.size();i++){
 
                 String x=t.get(i);
-
 
                 if(x.equals(">") || x.equals("1>")){
 
@@ -123,7 +113,6 @@ public class Main {
 
                 }
 
-
                 if(x.equals(">>") || x.equals("1>>")){
 
                     out=t.get(i+1);
@@ -133,7 +122,6 @@ public class Main {
 
                 }
 
-
                 if(x.equals("2>")){
 
                     err=t.get(i+1);
@@ -142,7 +130,6 @@ public class Main {
                     break;
 
                 }
-
 
                 if(x.equals("2>>")){
 
@@ -155,16 +142,10 @@ public class Main {
 
             }
 
-
-
             String cmd=t.get(0);
-
-
 
             if(cmd.equals("exit"))
                 break;
-
-
 
             else if(cmd.equals("jobs")){
 
@@ -223,8 +204,6 @@ public class Main {
 
             }
 
-
-
             else if(cmd.equals("pwd")){
 
                 print(
@@ -236,8 +215,6 @@ public class Main {
                 ensureFile(err, errAppend);
 
             }
-
-
 
             else if(cmd.equals("cd")){
 
@@ -257,8 +234,6 @@ public class Main {
 
                     d=new File(current,p);
 
-
-
                 if(d.exists() && d.isDirectory())
 
                     current=d.getCanonicalFile();
@@ -275,8 +250,6 @@ public class Main {
 
             }
 
-
-
             else if(cmd.equals("echo")){
 
                 print(
@@ -288,8 +261,6 @@ public class Main {
                 ensureFile(err, errAppend);
 
             }
-
-
 
             else if(cmd.equals("type")){
 
@@ -325,8 +296,6 @@ public class Main {
 
             }
 
-
-
             else{
 
                 String exe=find(cmd);
@@ -340,11 +309,9 @@ public class Main {
                     continue;
                 }
 
-
                 ProcessBuilder pb=new ProcessBuilder(t);
 
                 pb.directory(current);
-
 
                 if(out!=null){
 
@@ -366,7 +333,6 @@ public class Main {
 
                 }
 
-
                 if(err!=null){
 
                     if(errAppend)
@@ -387,9 +353,7 @@ public class Main {
 
                 }
 
-
                 Process p=pb.start();
-
 
                 if(bg){
 
@@ -414,11 +378,9 @@ public class Main {
 
             }
 
-
         }
 
     }
-
 
     // -------------------------------------------------------------------------
     // Pipeline execution — supports both external commands and built-ins.
@@ -563,7 +525,14 @@ public class Main {
                     final InputStream  src  = stageIn;          // pipeIn[i-1]
                     final OutputStream dst  = proc.getOutputStream();
                     Thread pump = new Thread(() -> {
-                        try { src.transferTo(dst); }
+                        try {
+                            byte[] buf = new byte[8192];
+                            int nRead;
+                            while ((nRead = src.read(buf)) != -1) {
+                                dst.write(buf, 0, nRead);
+                                dst.flush(); // Critical: prevent hangs by flushing immediately
+                            }
+                        }
                         catch (Exception ignore) {}
                         finally {
                             try { dst.close(); } catch (Exception ignore2) {}
@@ -580,7 +549,14 @@ public class Main {
                     final InputStream  src  = proc.getInputStream();
                     final OutputStream dst  = stageOut;   // pipeOut[i]
                     Thread pump = new Thread(() -> {
-                        try { src.transferTo(dst); }
+                        try {
+                            byte[] buf = new byte[8192];
+                            int nRead;
+                            while ((nRead = src.read(buf)) != -1) {
+                                dst.write(buf, 0, nRead);
+                                dst.flush(); // Critical: prevent hangs by flushing immediately
+                            }
+                        }
                         catch (Exception ignore) {}
                         finally {
                             try { dst.close(); } catch (Exception ignore2) {}
@@ -632,7 +608,6 @@ public class Main {
             if (finalOut != System.out) finalOut.close();
         }
     }
-
 
     // -------------------------------------------------------------------------
     // Execute a single built-in command inside a pipeline.
@@ -723,7 +698,6 @@ public class Main {
         if (isLast) ensureFile(errFile, errAppend);
     }
 
-
     static List<List<String>> splitByPipe(List<String> t) {
 
         List<List<String>> segs = new ArrayList<>();
@@ -742,7 +716,6 @@ public class Main {
         return segs;
     }
 
-
     static boolean isFinished(Process p) {
         if(!p.isAlive()) return true;
         try {
@@ -752,13 +725,11 @@ public class Main {
         }
     }
 
-
     static int nextJobId() {
         int max = 0;
         for(Job j : jobs) if(j.id > max) max = j.id;
         return max + 1;
     }
-
 
     static boolean isBuiltin(String s){
         return s.equals("echo") ||
@@ -768,7 +739,6 @@ public class Main {
                s.equals("cd")   ||
                s.equals("jobs");
     }
-
 
     static String find(String c){
         String path = System.getenv("PATH");
@@ -780,7 +750,6 @@ public class Main {
         return null;
     }
 
-
     static void print(String s, String f, boolean append) throws Exception {
         if(f == null){ System.out.println(s); return; }
         if(append)
@@ -790,7 +759,6 @@ public class Main {
             Files.writeString(Path.of(f), s+"\n");
     }
 
-
     static void writeToFile(String f, String content, boolean append) throws Exception {
         if(append)
             Files.writeString(Path.of(f), content,
@@ -798,7 +766,6 @@ public class Main {
         else
             Files.writeString(Path.of(f), content);
     }
-
 
     static void ensureFile(String f, boolean append) throws Exception {
         if(f == null) return;
@@ -809,7 +776,6 @@ public class Main {
             Files.writeString(p, "");
         }
     }
-
 
     static void reapJobs() {
         int n = jobs.size();
@@ -828,7 +794,6 @@ public class Main {
         jobs.removeAll(finished);
         if(doneOut.length() > 0) System.out.print(doneOut);
     }
-
 
     static List<String> parse(String s){
         ArrayList<String> r = new ArrayList<>();
