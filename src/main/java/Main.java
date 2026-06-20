@@ -55,12 +55,12 @@ public class Main {
 
                     dir = new File(System.getenv("HOME"));
 
-                } 
+                }
                 else if (path.startsWith("/")) {
 
                     dir = new File(path);
 
-                } 
+                }
                 else {
 
                     dir = new File(current, path);
@@ -72,7 +72,7 @@ public class Main {
 
                     current = dir.getCanonicalFile();
 
-                } 
+                }
                 else {
 
                     System.out.println(
@@ -84,6 +84,8 @@ public class Main {
 
 
             else if (cmd.equals("type")) {
+
+                if (parts.size() < 2) continue;
 
                 String c = parts.get(1);
 
@@ -98,8 +100,8 @@ public class Main {
                     System.out.println(c + " is a shell builtin");
 
 
-                } else {
-
+                }
+                else {
 
                     String exe = find(c);
 
@@ -111,6 +113,7 @@ public class Main {
                     else
 
                         System.out.println(c + ": not found");
+
                 }
             }
 
@@ -129,7 +132,8 @@ public class Main {
                     pb.start().waitFor();
 
 
-                } else {
+                }
+                else {
 
                     System.out.println(cmd + ": command not found");
 
@@ -151,7 +155,6 @@ public class Main {
 
 
         boolean single = false;
-
         boolean dbl = false;
 
 
@@ -163,7 +166,7 @@ public class Main {
 
 
 
-            // Backslash outside quotes
+            // Backslash escaping only outside quotes
             if (c == '\\' && !single && !dbl) {
 
 
@@ -179,26 +182,25 @@ public class Main {
 
 
 
+            // Single quotes
             else if (c == '\'' && !dbl) {
-
 
                 single = !single;
 
-
             }
 
 
 
+            // Double quotes
             else if (c == '"' && !single) {
-
 
                 dbl = !dbl;
 
-
             }
 
 
 
+            // Split only on unquoted spaces
             else if (c == ' ' && !single && !dbl) {
 
 
@@ -210,19 +212,15 @@ public class Main {
 
                 }
 
-
             }
 
 
 
             else {
 
-
                 word.append(c);
 
-
             }
-
         }
 
 
@@ -234,7 +232,6 @@ public class Main {
 
 
         return result;
-
     }
 
 
@@ -267,6 +264,5 @@ public class Main {
 
 
         return null;
-
     }
 }
