@@ -14,17 +14,14 @@ public class Main {
 
             System.out.print("$ ");
 
-            String input = sc.nextLine();
-            List<String> parts = parse(input);
+            List<String> parts = parse(sc.nextLine());
 
             if (parts.isEmpty()) continue;
 
             String cmd = parts.get(0);
 
 
-            if (cmd.equals("exit")) {
-                break;
-            }
+            if (cmd.equals("exit")) break;
 
 
             else if (cmd.equals("echo")) {
@@ -39,31 +36,22 @@ public class Main {
 
             else if (cmd.equals("cd")) {
 
-                if (parts.size() < 2) continue;
-
-                String path = parts.get(1);
+                String p = parts.get(1);
 
                 File dir;
 
-                if (path.equals("~")) {
+                if (p.equals("~"))
                     dir = new File(System.getenv("HOME"));
-                }
-                else if (path.startsWith("/")) {
-                    dir = new File(path);
-                }
-                else {
-                    dir = new File(current, path);
-                }
+                else if (p.startsWith("/"))
+                    dir = new File(p);
+                else
+                    dir = new File(current, p);
 
 
-                if (dir.exists() && dir.isDirectory()) {
+                if (dir.exists() && dir.isDirectory())
                     current = dir.getCanonicalFile();
-                }
-                else {
-                    System.out.println(
-                        "cd: " + path + ": No such file or directory"
-                    );
-                }
+                else
+                    System.out.println("cd: " + p + ": No such file or directory");
             }
 
 
@@ -93,9 +81,7 @@ public class Main {
 
             else {
 
-                String exe = find(cmd);
-
-                if (exe != null) {
+                if (find(cmd) != null) {
 
                     ProcessBuilder pb = new ProcessBuilder(parts);
 
@@ -105,52 +91,57 @@ public class Main {
                     pb.start().waitFor();
 
                 } else {
-
                     System.out.println(cmd + ": command not found");
-
                 }
             }
         }
-
-        sc.close();
     }
 
 
     static List<String> parse(String s) {
 
-        List<String> out = new ArrayList<>();
+        List<String> result = new ArrayList<>();
 
-        StringBuilder cur = new StringBuilder();
+        StringBuilder word = new StringBuilder();
 
-        boolean quote = false;
+        boolean single = false;
+        boolean dbl = false;
 
 
         for (char c : s.toCharArray()) {
 
-            if (c == '\'') {
-                quote = !quote;
+
+            if (c == '\'' && !dbl) {
+                single = !single;
             }
 
-            else if (c == ' ' && !quote) {
 
-                if (cur.length() > 0) {
-                    out.add(cur.toString());
-                    cur.setLength(0);
+            else if (c == '"' && !single) {
+                dbl = !dbl;
+            }
+
+
+            else if (c == ' ' && !single && !dbl) {
+
+                if (word.length() > 0) {
+                    result.add(word.toString());
+                    word.setLength(0);
                 }
 
             }
 
+
             else {
-                cur.append(c);
+                word.append(c);
             }
         }
 
 
-        if (cur.length() > 0)
-            out.add(cur.toString());
+        if (word.length() > 0)
+            result.add(word.toString());
 
 
-        return out;
+        return result;
     }
 
 
@@ -158,8 +149,7 @@ public class Main {
 
         String path = System.getenv("PATH");
 
-        if (path == null)
-            return null;
+        if (path == null) return null;
 
 
         for (String d : path.split(File.pathSeparator)) {
