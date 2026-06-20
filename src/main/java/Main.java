@@ -20,47 +20,76 @@ public class Main {
 
 
             String out=null,err=null;
-            boolean append=false;
+            boolean appendOut=false,appendErr=false;
 
 
             for(int i=0;i<p.size();i++){
 
+
                 if(p.get(i).equals(">>") || p.get(i).equals("1>>")){
+
                     out=p.get(i+1);
-                    append=true;
+                    appendOut=true;
                     p=p.subList(0,i);
                     break;
+
                 }
+
 
                 if(p.get(i).equals(">") || p.get(i).equals("1>")){
+
                     out=p.get(i+1);
-                    append=false;
+                    appendOut=false;
                     p=p.subList(0,i);
                     break;
+
                 }
 
-                if(p.get(i).equals("2>")){
+
+                if(p.get(i).equals("2>>")){
+
                     err=p.get(i+1);
+                    appendErr=true;
                     p=p.subList(0,i);
                     break;
+
+                }
+
+
+                if(p.get(i).equals("2>")){
+
+                    err=p.get(i+1);
+                    appendErr=false;
+                    p=p.subList(0,i);
+                    break;
+
                 }
             }
+
 
 
             String cmd=p.get(0);
 
 
+
             if(cmd.equals("exit"))
+
                 break;
 
 
 
             else if(cmd.equals("echo")){
 
-                if(err!=null)
-                    Files.writeString(Path.of(err),"");
 
-                write(String.join(" ",p.subList(1,p.size())),out,append);
+                if(err!=null)
+                    makeErr(err,appendErr);
+
+
+                write(
+                    String.join(" ",p.subList(1,p.size())),
+                    out,
+                    appendOut
+                );
 
             }
 
@@ -68,10 +97,16 @@ public class Main {
 
             else if(cmd.equals("pwd")){
 
-                if(err!=null)
-                    Files.writeString(Path.of(err),"");
 
-                write(cur.getCanonicalPath(),out,append);
+                if(err!=null)
+                    makeErr(err,appendErr);
+
+
+                write(
+                    cur.getCanonicalPath(),
+                    out,
+                    appendOut
+                );
 
             }
 
@@ -108,6 +143,7 @@ public class Main {
                     System.out.println(
                         "cd: "+path+": No such file or directory"
                     );
+
             }
 
 
@@ -130,7 +166,7 @@ public class Main {
                     );
 
 
-                } else {
+                }else{
 
 
                     String f=find(c);
@@ -150,7 +186,7 @@ public class Main {
 
 
 
-            else {
+            else{
 
 
                 if(find(cmd)!=null){
@@ -164,10 +200,12 @@ public class Main {
 
                     if(out!=null){
 
-                        if(append)
+                        if(appendOut)
 
                             pb.redirectOutput(
-                                ProcessBuilder.Redirect.appendTo(new File(out))
+                                ProcessBuilder.Redirect.appendTo(
+                                    new File(out)
+                                )
                             );
 
                         else
@@ -176,9 +214,21 @@ public class Main {
                     }
 
 
-                    if(err!=null)
 
-                        pb.redirectError(new File(err));
+                    if(err!=null){
+
+                        if(appendErr)
+
+                            pb.redirectError(
+                                ProcessBuilder.Redirect.appendTo(
+                                    new File(err)
+                                )
+                            );
+
+                        else
+
+                            pb.redirectError(new File(err));
+                    }
 
 
 
@@ -196,10 +246,13 @@ public class Main {
                         );
 
 
+
                     pb.start().waitFor();
 
 
+
                 }else{
+
 
                     System.out.println(cmd+": command not found");
 
@@ -210,6 +263,29 @@ public class Main {
 
 
 
+
+    static void makeErr(String f,boolean a)throws Exception{
+
+        if(a)
+
+            Files.writeString(
+                Path.of(f),
+                "",
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND
+            );
+
+        else
+
+            Files.writeString(
+                Path.of(f),
+                ""
+            );
+    }
+
+
+
+
     static void write(String x,String f,boolean a)throws Exception{
 
 
@@ -217,6 +293,7 @@ public class Main {
 
             System.out.println(x);
             return;
+
         }
 
 
@@ -239,6 +316,8 @@ public class Main {
 
 
 
+
+
     static List<String> parse(String s){
 
         List<String> r=new ArrayList<>();
@@ -255,9 +334,11 @@ public class Main {
 
             if(c=='\\'){
 
+
                 if(sq)
 
                     w.append(c);
+
 
                 else if(dq &&
                    i+1<s.length() &&
@@ -265,6 +346,7 @@ public class Main {
                     s.charAt(i+1)=='\\'))
 
                     w.append(s.charAt(++i));
+
 
                 else
 
@@ -285,11 +367,13 @@ public class Main {
 
             else if(c==' '&&!sq&&!dq){
 
+
                 if(w.length()>0){
 
                     r.add(w.toString());
 
                     w.setLength(0);
+
                 }
 
             }
@@ -302,39 +386,33 @@ public class Main {
         }
 
 
+
         if(w.length()>0)
 
             r.add(w.toString());
 
 
         return r;
+
     }
+
 
 
 
     static String find(String c){
 
 
-        String path=System.getenv("PATH");
-
-
-        if(path==null)
-
-            return null;
-
-
-        for(String x:path.split(":")){
+        for(String x:System.getenv("PATH").split(":")){
 
 
             Path p=Path.of(x,c);
 
 
-            if(Files.exists(p) && Files.isExecutable(p))
+            if(Files.exists(p)&&Files.isExecutable(p))
 
                 return p.toString();
 
         }
-
 
         return null;
     }
