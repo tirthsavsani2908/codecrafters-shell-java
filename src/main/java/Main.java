@@ -1,6 +1,7 @@
 import java.util.*;
 import java.io.*;
 import java.nio.file.*;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -201,7 +202,7 @@ public class Main {
                             " ";
 
 
-                    if(!j.process.isAlive()){
+                    if(isFinished(j.process)){
 
                         jobsOut.append(String.format(
                                 "[%d]%s  Done                    %s%n",
@@ -595,6 +596,31 @@ public class Main {
 
 
 
+    // Checks whether a job's process has completed, giving it a brief grace
+    // period to register its exit if it's in the middle of exiting. Plain
+    // isAlive() can return true for a process that has just received EOF
+    // (e.g. a `cat` reading a FIFO that just got closed) but hasn't been
+    // reaped by the OS yet. waitFor(timeout) lets the JVM briefly block for
+    // that exit to land instead of missing it due to a tight timing race.
+    static boolean isFinished(Process p) {
+
+        if(!p.isAlive())
+            return true;
+
+        try{
+
+            return p.waitFor(50, TimeUnit.MILLISECONDS);
+
+        }catch(InterruptedException e){
+
+            return !p.isAlive();
+
+        }
+
+    }
+
+
+
     // Computes the job number for a newly started background job. Job
     // numbers are recycled rather than growing forever: if the table is
     // empty the next job starts at [1]; otherwise it's one more than the
@@ -767,7 +793,7 @@ public class Main {
 
             Job j = jobs.get(i);
 
-            if(!j.process.isAlive()){
+            if(isFinished(j.process)){
 
                 String mark =
                         (i==n-1) ? "+" :
