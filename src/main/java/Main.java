@@ -20,11 +20,9 @@ public class Main {
 
             String cmd = p.get(0);
 
-
-            if (cmd.equals("exit")) break;
-
-
             String out = null;
+            String err = null;
+
 
             for (int i = 0; i < p.size(); i++) {
 
@@ -33,15 +31,32 @@ public class Main {
                     out = p.get(i + 1);
                     p = p.subList(0, i);
                     break;
+
+                }
+
+                if (p.get(i).equals("2>")) {
+
+                    err = p.get(i + 1);
+                    p = p.subList(0, i);
+                    break;
+
                 }
             }
 
 
-            if (cmd.equals("echo")) {
 
-                write(String.join(" ", p.subList(1, p.size())), out);
+            if (cmd.equals("exit"))
+
+                break;
+
+
+
+            else if (cmd.equals("echo")) {
+
+                write(String.join(" ", p.subList(1,p.size())), out);
 
             }
+
 
 
             else if (cmd.equals("pwd")) {
@@ -49,6 +64,7 @@ public class Main {
                 write(cur.getCanonicalPath(), out);
 
             }
+
 
 
             else if (cmd.equals("cd")) {
@@ -59,88 +75,104 @@ public class Main {
                 File d;
 
 
-                if (path.equals("~"))
+                if(path.equals("~"))
 
                     d = new File(System.getenv("HOME"));
 
-                else if (path.startsWith("/"))
+                else if(path.startsWith("/"))
 
                     d = new File(path);
 
                 else
 
-                    d = new File(cur, path);
+                    d = new File(cur,path);
 
 
 
-                if (d.exists() && d.isDirectory())
+                if(d.exists() && d.isDirectory())
 
-                    cur = d.getCanonicalFile();
+                    cur=d.getCanonicalFile();
 
                 else
 
                     System.out.println(
-                        "cd: " + path + ": No such file or directory"
+                        "cd: "+path+": No such file or directory"
                     );
+
             }
 
 
-            else if (cmd.equals("type")) {
 
-                String c = p.get(1);
-
-
-                if (c.equals("echo") ||
-                    c.equals("exit") ||
-                    c.equals("type") ||
-                    c.equals("pwd") ||
-                    c.equals("cd")) {
+            else if(cmd.equals("type")) {
 
 
-                    System.out.println(c + " is a shell builtin");
+                String c=p.get(1);
+
+
+                if(c.equals("echo") ||
+                   c.equals("exit") ||
+                   c.equals("type") ||
+                   c.equals("pwd") ||
+                   c.equals("cd")) {
+
+
+                    System.out.println(c+" is a shell builtin");
 
 
                 } else {
 
 
-                    String e = find(c);
+                    String e=find(c);
 
 
-                    if (e != null)
+                    if(e!=null)
 
-                        System.out.println(c + " is " + e);
+                        System.out.println(c+" is "+e);
 
                     else
 
-                        System.out.println(c + ": not found");
+                        System.out.println(c+": not found");
+
                 }
             }
+
 
 
             else {
 
 
-                if (find(cmd) != null) {
+                if(find(cmd)!=null) {
 
 
-                    ProcessBuilder pb = new ProcessBuilder(p);
+                    ProcessBuilder pb=new ProcessBuilder(p);
 
                     pb.directory(cur);
 
 
-                    if (out != null) {
+                    if(out!=null)
 
                         pb.redirectOutput(new File(out));
 
-                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
 
-                    }
+                    if(err!=null)
 
-                    else {
+                        pb.redirectError(new File(err));
+
+
+                    if(out==null && err==null)
 
                         pb.inheritIO();
 
-                    }
+
+                    else if(out==null)
+
+                        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+
+
+                    else if(err==null)
+
+                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+
 
 
                     pb.start().waitFor();
@@ -148,7 +180,8 @@ public class Main {
 
                 } else {
 
-                    System.out.println(cmd + ": command not found");
+
+                    System.out.println(cmd+": command not found");
 
                 }
             }
@@ -157,87 +190,70 @@ public class Main {
 
 
 
-    static void write(String x, String f) throws Exception {
+    static void write(String x,String f)throws Exception{
 
-        if (f != null)
+        if(f!=null)
 
-            Files.writeString(Path.of(f), x + "\n");
+            Files.writeString(Path.of(f),x+"\n");
 
         else
 
             System.out.println(x);
+
     }
 
 
 
-    static List<String> parse(String s) {
+    static List<String> parse(String s){
 
-        List<String> r = new ArrayList<>();
+        List<String> r=new ArrayList<>();
 
-        StringBuilder w = new StringBuilder();
+        StringBuilder w=new StringBuilder();
 
-        boolean sq = false, dq = false;
-
-
-        for (int i = 0; i < s.length(); i++) {
-
-
-            char c = s.charAt(i);
+        boolean sq=false,dq=false;
 
 
 
-            if (c == '\\') {
+        for(int i=0;i<s.length();i++){
+
+            char c=s.charAt(i);
 
 
-                if (sq) {
+            if(c=='\\'){
+
+
+                if(sq)
 
                     w.append(c);
 
-                }
-
-                else if (dq) {
-
-
-                    if (i + 1 < s.length() &&
-                       (s.charAt(i + 1) == '"' ||
-                        s.charAt(i + 1) == '\\')) {
-
-                        w.append(s.charAt(++i));
-
-                    } else {
-
-                        w.append('\\');
-
-                    }
-
-                }
-
-                else {
+                else if(dq &&
+                   i+1<s.length() &&
+                   (s.charAt(i+1)=='"' ||
+                    s.charAt(i+1)=='\\'))
 
                     w.append(s.charAt(++i));
 
-                }
-            }
+                else
 
-
-            else if (c == '\'' && !dq) {
-
-                sq = !sq;
+                    w.append(s.charAt(++i));
 
             }
 
 
-            else if (c == '"' && !sq) {
+            else if(c=='\''&&!dq)
 
-                dq = !dq;
-
-            }
+                sq=!sq;
 
 
-            else if (c == ' ' && !sq && !dq) {
+            else if(c=='"'&&!sq)
+
+                dq=!dq;
 
 
-                if (w.length() > 0) {
+            else if(c==' '&&!sq&&!dq){
+
+
+                if(w.length()>0){
 
                     r.add(w.toString());
 
@@ -248,49 +264,40 @@ public class Main {
             }
 
 
-            else {
+            else
 
                 w.append(c);
 
-            }
         }
 
 
-        if (w.length() > 0)
+        if(w.length()>0)
 
             r.add(w.toString());
 
 
         return r;
+
     }
 
 
 
-    static String find(String cmd) {
+    static String find(String c){
 
 
-        String path = System.getenv("PATH");
+        for(String x:System.getenv("PATH").split(":")){
 
 
-        if (path == null)
-
-            return null;
+            Path p=Path.of(x,c);
 
 
-
-        for (String x : path.split(":")) {
-
-
-            Path p = Path.of(x, cmd);
-
-
-            if (Files.exists(p) && Files.isExecutable(p))
+            if(Files.exists(p)&&Files.isExecutable(p))
 
                 return p.toString();
 
         }
 
-
         return null;
+
     }
 }
