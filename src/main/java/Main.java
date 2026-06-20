@@ -10,66 +10,52 @@ public class Main {
 
         Scanner s = new Scanner(System.in);
 
-        while(true){
+        while (true) {
 
             System.out.print("$ ");
 
-            List<String> p=parse(s.nextLine());
+            List<String> p = parse(s.nextLine());
 
-            if(p.isEmpty()) continue;
+            if (p.isEmpty()) continue;
 
 
-            String out=null,err=null;
-            boolean appendOut=false,appendErr=false;
+            String out=null, err=null;
+            boolean appendOut=false, appendErr=false;
 
 
             for(int i=0;i<p.size();i++){
 
-
                 if(p.get(i).equals(">>") || p.get(i).equals("1>>")){
-
                     out=p.get(i+1);
                     appendOut=true;
                     p=p.subList(0,i);
                     break;
-
                 }
 
-
                 if(p.get(i).equals(">") || p.get(i).equals("1>")){
-
                     out=p.get(i+1);
                     appendOut=false;
                     p=p.subList(0,i);
                     break;
-
                 }
 
-
                 if(p.get(i).equals("2>>")){
-
                     err=p.get(i+1);
                     appendErr=true;
                     p=p.subList(0,i);
                     break;
-
                 }
 
-
                 if(p.get(i).equals("2>")){
-
                     err=p.get(i+1);
                     appendErr=false;
                     p=p.subList(0,i);
                     break;
-
                 }
             }
 
 
-
             String cmd=p.get(0);
-
 
 
             if(cmd.equals("exit"))
@@ -80,16 +66,9 @@ public class Main {
 
             else if(cmd.equals("echo")){
 
+                if(err!=null) makeErr(err,appendErr);
 
-                if(err!=null)
-                    makeErr(err,appendErr);
-
-
-                write(
-                    String.join(" ",p.subList(1,p.size())),
-                    out,
-                    appendOut
-                );
+                write(String.join(" ",p.subList(1,p.size())),out,appendOut);
 
             }
 
@@ -97,16 +76,9 @@ public class Main {
 
             else if(cmd.equals("pwd")){
 
+                if(err!=null) makeErr(err,appendErr);
 
-                if(err!=null)
-                    makeErr(err,appendErr);
-
-
-                write(
-                    cur.getCanonicalPath(),
-                    out,
-                    appendOut
-                );
+                write(cur.getCanonicalPath(),out,appendOut);
 
             }
 
@@ -158,12 +130,11 @@ public class Main {
                    c.equals("exit") ||
                    c.equals("type") ||
                    c.equals("pwd") ||
-                   c.equals("cd")){
+                   c.equals("cd") ||
+                   c.equals("jobs")){
 
 
-                    System.out.println(
-                        c+" is a shell builtin"
-                    );
+                    System.out.println(c+" is a shell builtin");
 
 
                 }else{
@@ -186,6 +157,14 @@ public class Main {
 
 
 
+            else if(cmd.equals("jobs")){
+
+                // empty for now
+
+            }
+
+
+
             else{
 
 
@@ -203,9 +182,7 @@ public class Main {
                         if(appendOut)
 
                             pb.redirectOutput(
-                                ProcessBuilder.Redirect.appendTo(
-                                    new File(out)
-                                )
+                                ProcessBuilder.Redirect.appendTo(new File(out))
                             );
 
                         else
@@ -220,9 +197,7 @@ public class Main {
                         if(appendErr)
 
                             pb.redirectError(
-                                ProcessBuilder.Redirect.appendTo(
-                                    new File(err)
-                                )
+                                ProcessBuilder.Redirect.appendTo(new File(err))
                             );
 
                         else
@@ -246,13 +221,10 @@ public class Main {
                         );
 
 
-
                     pb.start().waitFor();
 
 
-
                 }else{
-
 
                     System.out.println(cmd+": command not found");
 
@@ -260,7 +232,6 @@ public class Main {
             }
         }
     }
-
 
 
 
@@ -285,7 +256,6 @@ public class Main {
 
 
 
-
     static void write(String x,String f,boolean a)throws Exception{
 
 
@@ -293,7 +263,6 @@ public class Main {
 
             System.out.println(x);
             return;
-
         }
 
 
@@ -316,8 +285,6 @@ public class Main {
 
 
 
-
-
     static List<String> parse(String s){
 
         List<String> r=new ArrayList<>();
@@ -334,11 +301,9 @@ public class Main {
 
             if(c=='\\'){
 
-
                 if(sq)
 
                     w.append(c);
-
 
                 else if(dq &&
                    i+1<s.length() &&
@@ -346,7 +311,6 @@ public class Main {
                     s.charAt(i+1)=='\\'))
 
                     w.append(s.charAt(++i));
-
 
                 else
 
@@ -386,33 +350,36 @@ public class Main {
         }
 
 
-
         if(w.length()>0)
 
             r.add(w.toString());
 
 
         return r;
-
     }
-
 
 
 
     static String find(String c){
 
 
-        for(String x:System.getenv("PATH").split(":")){
+        String path=System.getenv("PATH");
+
+        if(path==null) return null;
+
+
+        for(String x:path.split(":")){
 
 
             Path p=Path.of(x,c);
 
 
-            if(Files.exists(p)&&Files.isExecutable(p))
+            if(Files.exists(p) && Files.isExecutable(p))
 
                 return p.toString();
 
         }
+
 
         return null;
     }
