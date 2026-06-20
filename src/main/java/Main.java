@@ -1,5 +1,7 @@
 import java.util.Scanner;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -20,7 +22,6 @@ public class Main {
 
                 String command = input.substring(5);
 
-                // Check builtins
                 if (command.equals("echo") || command.equals("exit") || command.equals("type")) {
                     System.out.println(command + " is a shell builtin");
                 } 
@@ -33,10 +34,10 @@ public class Main {
                         String[] directories = path.split(File.pathSeparator);
 
                         for (String dir : directories) {
-                            File file = new File(dir, command);
+                            Path filePath = Path.of(dir, command);
 
-                            if (file.exists() && file.isExecutable()) {
-                                System.out.println(command + " is " + file.getAbsolutePath());
+                            if (Files.exists(filePath) && Files.isExecutable(filePath)) {
+                                System.out.println(command + " is " + filePath.toAbsolutePath());
                                 found = true;
                                 break;
                             }
