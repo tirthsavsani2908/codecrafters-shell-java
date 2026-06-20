@@ -118,20 +118,18 @@ public class Main {
             else if(cmd.equals("jobs")){
 
 
-                // Reap any jobs that completed since the last check. This
-                // uses the same logic as the automatic pre-prompt reaping,
-                // so a "Done" entry is only ever shown once: either here or
-                // automatically before the next prompt, whichever comes first.
-                reapJobs();
-
-
+                // Build the full listing in one pass: each job (running or
+                // just-finished) is shown inline, in job-table order, with
+                // markers computed against the current full list. Finished
+                // jobs are then removed so they aren't reported again by
+                // either this command or the automatic pre-prompt reaping.
                 int n=jobs.size();
 
 
                 StringBuilder jobsOut = new StringBuilder();
 
-                // All remaining jobs are guaranteed to still be running,
-                // since completed ones were just reaped above.
+                ArrayList<Job> finished = new ArrayList<>();
+
                 for(int i=0;i<n;i++){
 
 
@@ -144,14 +142,32 @@ public class Main {
                             " ";
 
 
-                    jobsOut.append(String.format(
-                            "[%d]%s  Running                 %s &%n",
-                            j.id,
-                            mark,
-                            j.cmd
-                    ));
+                    if(!j.process.isAlive()){
+
+                        jobsOut.append(String.format(
+                                "[%d]%s  Done                    %s%n",
+                                j.id,
+                                mark,
+                                j.cmd
+                        ));
+
+                        finished.add(j);
+
+                    }else{
+
+                        jobsOut.append(String.format(
+                                "[%d]%s  Running                 %s &%n",
+                                j.id,
+                                mark,
+                                j.cmd
+                        ));
+
+                    }
 
                 }
+
+
+                jobs.removeAll(finished);
 
 
                 if(out!=null){
