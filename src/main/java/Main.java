@@ -43,17 +43,30 @@ public class Main {
                     continue;
                 }
 
-                File newDirectory = new File(parts[1]);
+                String target = parts[1];
 
-                if (newDirectory.isAbsolute()) {
+                File newDirectory;
 
-                    if (newDirectory.exists() && newDirectory.isDirectory()) {
-                        currentDirectory = newDirectory;
-                    } 
-                    else {
-                        System.out.println("cd: " + parts[1] + ": No such file or directory");
-                    }
+                // Absolute path
+                if (target.startsWith("/")) {
+                    newDirectory = new File(target);
+                }
 
+                // Relative path
+                else {
+                    newDirectory = new File(currentDirectory, target);
+                }
+
+
+                if (newDirectory.exists() && newDirectory.isDirectory()) {
+
+                    currentDirectory = newDirectory.getCanonicalFile();
+
+                } else {
+
+                    System.out.println(
+                        "cd: " + target + ": No such file or directory"
+                    );
                 }
             }
 
@@ -110,8 +123,7 @@ public class Main {
                     Process process = pb.start();
                     process.waitFor();
 
-                } 
-                else {
+                } else {
                     System.out.println(command + ": command not found");
                 }
             }
@@ -136,6 +148,7 @@ public class Main {
             Path filePath = Path.of(dir, command);
 
             if (Files.exists(filePath) && Files.isExecutable(filePath)) {
+
                 return filePath.toAbsolutePath().toString();
             }
         }
