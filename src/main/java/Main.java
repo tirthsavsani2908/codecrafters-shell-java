@@ -459,8 +459,9 @@ public class Main {
         }
 
         // We'll collect all threads/processes so we can wait for them.
-        List<Thread>  threads   = new ArrayList<>();
-        List<Process> processes = new ArrayList<>();
+        List<Thread>  threads        = new ArrayList<>();
+        List<Process> processes      = new ArrayList<>();
+        Thread        lastBuiltinTh  = null;  // thread for the last segment if built-in
 
         for (int i = 0; i < n; i++) {
 
@@ -500,7 +501,8 @@ public class Main {
 
                 th.setDaemon(false);
                 th.start();
-                threads.add(th);
+                if (isLast) lastBuiltinTh = th;
+                else threads.add(th);
 
             } else {
 
@@ -607,8 +609,25 @@ public class Main {
                 System.out.println("[" + j.id + "] " + j.pid);
             }
         } else {
-            for (Process p  : processes) p.waitFor();
-            for (Thread  th : threads)   th.join();
+            // Wait for the last stage first (it controls pipeline completion).
+            if (lastBuiltinTh != null) {
+                // Last stage is a built-in: join it, then kill upstream processes.
+                lastBuiltinTh.join();
+                for (Process p : processes) {
+                    if (p.isAlive()) p.destroyForcibly();
+                }
+                for (Process p : processes) p.waitFor();
+            } else if (!processes.isEmpty()) {
+                // Last stage is an external process: wait for it, then kill upstream.
+                processes.get(processes.size()-1).waitFor();
+                for (int i = 0; i < processes.size()-1; i++) {
+                    Process p = processes.get(i);
+                    if (p.isAlive()) p.destroyForcibly();
+                }
+                for (Process p : processes) p.waitFor();
+            }
+            // Join remaining pump/builtin threads (with timeout to avoid hangs).
+            for (Thread th : threads) th.join(2000);
             System.out.flush();
             if (finalOut != System.out) finalOut.close();
         }
