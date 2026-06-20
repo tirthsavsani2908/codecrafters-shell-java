@@ -33,74 +33,67 @@ public class Main {
 
             System.out.print("$ ");
 
-            List<String> tokens = parse(sc.nextLine());
+            List<String> t = parse(sc.nextLine());
 
-            if (tokens.isEmpty())
+            if (t.isEmpty())
                 continue;
 
 
-            boolean background = false;
+            boolean bg = false;
 
-
-            if (tokens.get(tokens.size()-1).equals("&")) {
-                background = true;
-                tokens = tokens.subList(0, tokens.size()-1);
+            if (t.get(t.size()-1).equals("&")) {
+                bg = true;
+                t = t.subList(0,t.size()-1);
             }
 
 
 
-            String stdout = null;
-            String stderr = null;
+            String out=null, err=null;
 
-            boolean appendOut = false;
-            boolean appendErr = false;
+            boolean outAppend=false, errAppend=false;
 
 
 
-            for(int i=0;i<tokens.size();i++){
+            for(int i=0;i<t.size();i++){
 
-                String t=tokens.get(i);
+                String x=t.get(i);
 
 
-                if(t.equals(">") || t.equals("1>")){
+                if(x.equals(">") || x.equals("1>")){
 
-                    stdout=tokens.get(i+1);
-                    appendOut=false;
-
-                    tokens=tokens.subList(0,i);
+                    out=t.get(i+1);
+                    outAppend=false;
+                    t=t.subList(0,i);
                     break;
 
                 }
 
 
-                if(t.equals(">>") || t.equals("1>>")){
+                if(x.equals(">>") || x.equals("1>>")){
 
-                    stdout=tokens.get(i+1);
-                    appendOut=true;
-
-                    tokens=tokens.subList(0,i);
+                    out=t.get(i+1);
+                    outAppend=true;
+                    t=t.subList(0,i);
                     break;
 
                 }
 
 
-                if(t.equals("2>")){
+                if(x.equals("2>")){
 
-                    stderr=tokens.get(i+1);
-                    appendErr=false;
-
-                    tokens=tokens.subList(0,i);
+                    err=t.get(i+1);
+                    errAppend=false;
+                    t=t.subList(0,i);
                     break;
 
                 }
 
 
-                if(t.equals("2>>")){
+                if(x.equals("2>>")){
 
-                    stderr=tokens.get(i+1);
-                    appendErr=true;
-
-                    tokens=tokens.subList(0,i);
+                    err=t.get(i+1);
+                    errAppend=true;
+                    t=t.subList(0,i);
                     break;
 
                 }
@@ -109,7 +102,7 @@ public class Main {
 
 
 
-            String cmd=tokens.get(0);
+            String cmd=t.get(0);
 
 
 
@@ -121,20 +114,24 @@ public class Main {
             else if(cmd.equals("jobs")){
 
 
-                // print completed jobs once
-                for(int i=0;i<jobs.size();i++){
+                int n=jobs.size();
+
+
+                // print all jobs in job number order
+                for(int i=0;i<n;i++){
 
 
                     Job j=jobs.get(i);
 
 
+                    String mark =
+                            (i==n-1) ? "+" :
+                            (i==n-2) ? "-" :
+                            " ";
+
+
+
                     if(!j.process.isAlive()){
-
-
-                        String mark =
-                                i==jobs.size()-1 ? "+" :
-                                i==jobs.size()-2 ? "-" :
-                                " ";
 
 
                         System.out.printf(
@@ -145,8 +142,15 @@ public class Main {
                         );
 
 
-                        jobs.remove(i);
-                        i--;
+                    }else{
+
+
+                        System.out.printf(
+                                "[%d]%s  Running                 %s &%n",
+                                j.id,
+                                mark,
+                                j.cmd
+                        );
 
                     }
 
@@ -154,29 +158,9 @@ public class Main {
 
 
 
-                int n=jobs.size();
+                // remove finished jobs
+                jobs.removeIf(j -> !j.process.isAlive());
 
-
-                for(int i=0;i<n;i++){
-
-
-                    Job j=jobs.get(i);
-
-
-                    String mark =
-                            i==n-1 ? "+" :
-                            i==n-2 ? "-" :
-                            " ";
-
-
-                    System.out.printf(
-                            "[%d]%s  Running                 %s &%n",
-                            j.id,
-                            mark,
-                            j.cmd
-                    );
-
-                }
 
             }
 
@@ -185,10 +169,10 @@ public class Main {
             else if(cmd.equals("pwd")){
 
 
-                output(
+                print(
                         current.getCanonicalPath(),
-                        stdout,
-                        appendOut
+                        out,
+                        outAppend
                 );
 
 
@@ -199,33 +183,35 @@ public class Main {
             else if(cmd.equals("cd")){
 
 
-                String path=tokens.get(1);
+                String p=t.get(1);
 
-                File dir;
+                File d;
 
 
+                if(p.equals("~"))
 
-                if(path.equals("~"))
-                    dir=new File(System.getenv("HOME"));
+                    d=new File(System.getenv("HOME"));
 
-                else if(path.startsWith("/"))
-                    dir=new File(path);
+                else if(p.startsWith("/"))
+
+                    d=new File(p);
 
                 else
-                    dir=new File(current,path);
+
+                    d=new File(current,p);
 
 
 
-                if(dir.exists() && dir.isDirectory())
+                if(d.exists() && d.isDirectory())
 
-                    current=dir.getCanonicalFile();
+                    current=d.getCanonicalFile();
 
                 else
 
                     System.out.println(
-                            "cd: "+path+
-                            ": No such file or directory"
+                            "cd: "+p+": No such file or directory"
                     );
+
 
             }
 
@@ -234,11 +220,10 @@ public class Main {
             else if(cmd.equals("echo")){
 
 
-                output(
-                        String.join(" ",
-                                tokens.subList(1,tokens.size())),
-                        stdout,
-                        appendOut
+                print(
+                        String.join(" ",t.subList(1,t.size())),
+                        out,
+                        outAppend
                 );
 
 
@@ -249,8 +234,7 @@ public class Main {
             else if(cmd.equals("type")){
 
 
-                String c=tokens.get(1);
-
+                String c=t.get(1);
 
 
                 if(isBuiltin(c)){
@@ -259,18 +243,16 @@ public class Main {
                             c+" is a shell builtin"
                     );
 
-                }
-
-                else{
+                }else{
 
 
-                    String path=find(c);
+                    String f=find(c);
 
 
-                    if(path!=null)
+                    if(f!=null)
 
                         System.out.println(
-                                c+" is "+path
+                                c+" is "+f
                         );
 
                     else
@@ -280,6 +262,7 @@ public class Main {
                         );
 
                 }
+
 
             }
 
@@ -302,57 +285,55 @@ public class Main {
 
 
 
-                ProcessBuilder pb =
-                        new ProcessBuilder(tokens);
-
-
+                ProcessBuilder pb=new ProcessBuilder(t);
 
                 pb.directory(current);
 
 
 
-                if(stdout!=null){
+                if(out!=null){
 
-                    if(appendOut)
+                    if(outAppend)
 
                         pb.redirectOutput(
                                 ProcessBuilder.Redirect.appendTo(
-                                        new File(stdout)));
+                                        new File(out)));
 
                     else
 
                         pb.redirectOutput(
-                                new File(stdout));
-                }
+                                new File(out));
 
-
-
-                else
+                }else{
 
                     pb.redirectOutput(
                             ProcessBuilder.Redirect.INHERIT);
 
+                }
 
 
-                if(stderr!=null){
 
-                    if(appendErr)
+
+                if(err!=null){
+
+                    if(errAppend)
 
                         pb.redirectError(
                                 ProcessBuilder.Redirect.appendTo(
-                                        new File(stderr)));
+                                        new File(err)));
 
                     else
 
                         pb.redirectError(
-                                new File(stderr));
+                                new File(err));
 
-                }
-
-                else
+                }else{
 
                     pb.redirectError(
                             ProcessBuilder.Redirect.INHERIT);
+
+                }
+
 
 
 
@@ -360,13 +341,13 @@ public class Main {
 
 
 
-                if(background){
+                if(bg){
 
 
                     Job j=new Job(
                             jobId++,
                             p.pid(),
-                            String.join(" ",tokens),
+                            String.join(" ",t),
                             p
                     );
 
@@ -374,19 +355,21 @@ public class Main {
                     jobs.add(j);
 
 
-
                     System.out.println(
                             "["+j.id+"] "+j.pid
                     );
 
 
-                }
+                }else{
 
-                else
 
                     p.waitFor();
 
+
+                }
+
             }
+
 
         }
 
@@ -413,8 +396,8 @@ public class Main {
 
 
 
-    static String find(String c){
 
+    static String find(String c){
 
         String path=System.getenv("PATH");
 
@@ -424,10 +407,10 @@ public class Main {
 
 
 
-        for(String p:path.split(":")){
+        for(String x:path.split(":")){
 
 
-            File f=new File(p,c);
+            File f=new File(x,c);
 
 
             if(f.exists() && f.canExecute())
@@ -447,13 +430,12 @@ public class Main {
 
 
 
-    static void output(String text,String file,boolean append)
-            throws Exception{
+    static void print(String s,String f,boolean append)throws Exception{
 
 
-        if(file==null){
+        if(f==null){
 
-            System.out.println(text);
+            System.out.println(s);
             return;
 
         }
@@ -463,8 +445,8 @@ public class Main {
         if(append)
 
             Files.writeString(
-                    Path.of(file),
-                    text+"\n",
+                    Path.of(f),
+                    s+"\n",
                     StandardOpenOption.CREATE,
                     StandardOpenOption.APPEND
             );
@@ -472,9 +454,10 @@ public class Main {
         else
 
             Files.writeString(
-                    Path.of(file),
-                    text+"\n"
+                    Path.of(f),
+                    s+"\n"
             );
+
 
     }
 
@@ -487,13 +470,11 @@ public class Main {
     static List<String> parse(String s){
 
 
-        ArrayList<String> list=new ArrayList<>();
+        ArrayList<String> r=new ArrayList<>();
 
-        StringBuilder cur=new StringBuilder();
+        StringBuilder b=new StringBuilder();
 
-
-        boolean single=false;
-        boolean doub=false;
+        boolean sq=false,dq=false;
 
 
 
@@ -507,29 +488,24 @@ public class Main {
             if(c=='\\'){
 
 
-                if(single){
+                if(sq){
 
-                    cur.append(c);
-
-                }
-
-
-                else if(doub &&
-                        i+1<s.length() &&
-                        (s.charAt(i+1)=='"' ||
-                         s.charAt(i+1)=='\\')){
-
-
-                    cur.append(s.charAt(++i));
+                    b.append(c);
 
                 }
 
+                else if(dq && i+1<s.length()
+                        && (s.charAt(i+1)=='"' ||
+                            s.charAt(i+1)=='\\')){
+
+
+                    b.append(s.charAt(++i));
+
+                }
 
                 else{
 
-                    cur.append(
-                            s.charAt(++i)
-                    );
+                    b.append(s.charAt(++i));
 
                 }
 
@@ -538,29 +514,30 @@ public class Main {
 
 
 
-            else if(c=='\'' && !doub)
+            else if(c=='\'' && !dq)
 
-                single=!single;
+                sq=!sq;
 
 
 
-            else if(c=='"' && !single)
+            else if(c=='"' && !sq)
 
-                doub=!doub;
+                dq=!dq;
 
 
 
             else if(Character.isWhitespace(c)
-                    && !single
-                    && !doub){
+                    && !sq && !dq){
 
 
-                if(cur.length()>0){
+                if(b.length()>0){
 
-                    list.add(cur.toString());
-                    cur.setLength(0);
+                    r.add(b.toString());
+
+                    b.setLength(0);
 
                 }
+
 
             }
 
@@ -568,18 +545,19 @@ public class Main {
 
             else
 
-                cur.append(c);
+                b.append(c);
 
         }
 
 
 
-        if(cur.length()>0)
+        if(b.length()>0)
 
-            list.add(cur.toString());
+            r.add(b.toString());
 
 
-        return list;
+
+        return r;
 
     }
 
