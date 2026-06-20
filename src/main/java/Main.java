@@ -4,35 +4,70 @@ import java.nio.file.*;
 
 public class Main {
 
-    static File cur = new File(System.getProperty("user.dir"));
-    static int job = 1;
+    static File cur=new File(System.getProperty("user.dir"));
+    static int jobNo=1;
 
-    public static void main(String[] args) throws Exception {
+    static ArrayList<Job> jobs=new ArrayList<>();
 
-        Scanner s = new Scanner(System.in);
+
+    static class Job{
+
+        int id;
+        long pid;
+        String cmd;
+        Process p;
+
+        Job(int i,long pid,String c,Process p){
+
+            id=i;
+            this.pid=pid;
+            cmd=c;
+            this.p=p;
+
+        }
+    }
+
+
+
+    public static void main(String[] args)throws Exception{
+
+
+        Scanner s=new Scanner(System.in);
+
 
         while(true){
 
+
             System.out.print("$ ");
 
-            List<String> p=parse(s.nextLine());
 
-            if(p.isEmpty()) continue;
+            String line=s.nextLine();
+
+
+            List<String> p=parse(line);
+
+
+            if(p.isEmpty())continue;
+
 
 
             boolean bg=false;
 
+
             if(p.get(p.size()-1).equals("&")){
 
                 bg=true;
+
                 p=p.subList(0,p.size()-1);
 
             }
 
 
+
             String out=null,err=null;
 
-            boolean appendOut=false,appendErr=false;
+            boolean ao=false,ae=false;
+
 
 
             for(int i=0;i<p.size();i++){
@@ -41,37 +76,42 @@ public class Main {
                 if(p.get(i).equals(">>")||p.get(i).equals("1>>")){
 
                     out=p.get(i+1);
-                    appendOut=true;
+                    ao=true;
                     p=p.subList(0,i);
                     break;
+
                 }
 
 
                 if(p.get(i).equals(">")||p.get(i).equals("1>")){
 
                     out=p.get(i+1);
-                    appendOut=false;
+                    ao=false;
                     p=p.subList(0,i);
                     break;
+
                 }
 
 
                 if(p.get(i).equals("2>>")){
 
                     err=p.get(i+1);
-                    appendErr=true;
+                    ae=true;
                     p=p.subList(0,i);
                     break;
+
                 }
 
 
                 if(p.get(i).equals("2>")){
 
                     err=p.get(i+1);
-                    appendErr=false;
+                    ae=false;
                     p=p.subList(0,i);
                     break;
+
                 }
+
             }
 
 
@@ -86,11 +126,37 @@ public class Main {
 
 
 
+            else if(cmd.equals("jobs")){
+
+
+                for(Job j:jobs){
+
+
+                    if(j.p.isAlive()){
+
+
+                        System.out.printf(
+                            "[%d]+  Running                 %s &%n",
+                            j.id,
+                            j.cmd
+                        );
+
+                    }
+
+                }
+
+            }
+
+
+
             else if(cmd.equals("echo")){
 
-                if(err!=null) makeErr(err,appendErr);
 
-                write(String.join(" ",p.subList(1,p.size())),out,appendOut);
+                write(
+                    String.join(" ",p.subList(1,p.size())),
+                    out,
+                    ao
+                );
 
             }
 
@@ -98,9 +164,12 @@ public class Main {
 
             else if(cmd.equals("pwd")){
 
-                if(err!=null) makeErr(err,appendErr);
 
-                write(cur.getCanonicalPath(),out,appendOut);
+                write(
+                    cur.getCanonicalPath(),
+                    out,
+                    ao
+                );
 
             }
 
@@ -156,12 +225,16 @@ public class Main {
                    c.equals("jobs"))
 
 
-                    System.out.println(c+" is a shell builtin");
+                    System.out.println(
+                        c+" is a shell builtin"
+                    );
 
 
                 else{
 
+
                     String f=find(c);
+
 
                     if(f!=null)
 
@@ -170,13 +243,8 @@ public class Main {
                     else
 
                         System.out.println(c+": not found");
+
                 }
-
-            }
-
-
-
-            else if(cmd.equals("jobs")){
 
             }
 
@@ -196,7 +264,7 @@ public class Main {
 
                     if(out!=null){
 
-                        if(appendOut)
+                        if(ao)
 
                             pb.redirectOutput(
                                 ProcessBuilder.Redirect.appendTo(new File(out))
@@ -205,13 +273,14 @@ public class Main {
                         else
 
                             pb.redirectOutput(new File(out));
+
                     }
 
 
 
                     if(err!=null){
 
-                        if(appendErr)
+                        if(ae)
 
                             pb.redirectError(
                                 ProcessBuilder.Redirect.appendTo(new File(err))
@@ -220,6 +289,7 @@ public class Main {
                         else
 
                             pb.redirectError(new File(err));
+
                     }
 
 
@@ -245,13 +315,25 @@ public class Main {
 
                     if(bg){
 
-                        System.out.println(
-                            "["+job+"] "+pr.pid()
+
+                        Job j=new Job(
+                            jobNo++,
+                            pr.pid(),
+                            line.replace("&","").trim(),
+                            pr
                         );
 
-                        job++;
+
+                        jobs.add(j);
+
+
+                        System.out.println(
+                            "["+j.id+"] "+j.pid
+                        );
+
 
                     }else{
+
 
                         pr.waitFor();
 
@@ -261,30 +343,18 @@ public class Main {
                 }else{
 
 
-                    System.out.println(cmd+": command not found");
+                    System.out.println(
+                        cmd+": command not found"
+                    );
 
                 }
+
             }
+
         }
-    }
-
-
-
-    static void makeErr(String f,boolean a)throws Exception{
-
-        if(a)
-
-            Files.writeString(
-                Path.of(f),"",
-                StandardOpenOption.CREATE,
-                StandardOpenOption.APPEND
-            );
-
-        else
-
-            Files.writeString(Path.of(f),"");
 
     }
+
 
 
 
@@ -294,6 +364,7 @@ public class Main {
         if(f==null){
 
             System.out.println(x);
+
             return;
 
         }
@@ -310,33 +381,43 @@ public class Main {
 
         else
 
-            Files.writeString(Path.of(f),x+"\n");
+            Files.writeString(
+                Path.of(f),
+                x+"\n"
+            );
 
     }
 
 
 
+
     static List<String> parse(String s){
+
 
         List<String> r=new ArrayList<>();
 
         StringBuilder w=new StringBuilder();
 
+
         boolean sq=false,dq=false;
+
 
 
         for(int i=0;i<s.length();i++){
 
+
             char c=s.charAt(i);
 
 
+
             if(c=='\\'){
+
 
                 if(sq)
 
                     w.append(c);
 
-                else if(dq&&i+1<s.length() &&
+                else if(dq&&i+1<s.length()&&
                    (s.charAt(i+1)=='"'||
                     s.charAt(i+1)=='\\'))
 
@@ -348,9 +429,12 @@ public class Main {
 
             }
 
+
+
             else if(c=='\''&&!dq)
 
                 sq=!sq;
+
 
 
             else if(c=='"'&&!sq)
@@ -358,22 +442,27 @@ public class Main {
                 dq=!dq;
 
 
+
             else if(c==' '&&!sq&&!dq){
+
 
                 if(w.length()>0){
 
                     r.add(w.toString());
+
                     w.setLength(0);
 
                 }
 
             }
 
+
             else
 
                 w.append(c);
 
         }
+
 
 
         if(w.length()>0)
@@ -387,24 +476,31 @@ public class Main {
 
 
 
+
     static String find(String c){
+
 
         String path=System.getenv("PATH");
 
-        if(path==null) return null;
+
+        if(path==null)return null;
+
 
 
         for(String x:path.split(":")){
 
-            Path p=Path.of(x,c);
+
+            File f=new File(x,c);
 
 
-            if(Files.exists(p)&&Files.isExecutable(p))
+            if(f.exists()&&f.canExecute())
 
-                return p.toString();
+                return f.getPath();
 
         }
 
+
         return null;
+
     }
 }
