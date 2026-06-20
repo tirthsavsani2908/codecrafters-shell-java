@@ -7,11 +7,14 @@ import java.util.List;
 
 public class Main {
 
+    static File currentDirectory = new File(System.getProperty("user.dir"));
+
     public static void main(String[] args) throws Exception {
 
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
+
             System.out.print("$ ");
 
             String input = scanner.nextLine();
@@ -30,7 +33,28 @@ public class Main {
 
 
             else if (command.equals("pwd")) {
-                System.out.println(System.getProperty("user.dir"));
+                System.out.println(currentDirectory.getAbsolutePath());
+            }
+
+
+            else if (command.equals("cd")) {
+
+                if (parts.length < 2) {
+                    continue;
+                }
+
+                File newDirectory = new File(parts[1]);
+
+                if (newDirectory.isAbsolute()) {
+
+                    if (newDirectory.exists() && newDirectory.isDirectory()) {
+                        currentDirectory = newDirectory;
+                    } 
+                    else {
+                        System.out.println("cd: " + parts[1] + ": No such file or directory");
+                    }
+
+                }
             }
 
 
@@ -42,10 +66,16 @@ public class Main {
 
                 String cmd = parts[1];
 
-                if (cmd.equals("echo") || cmd.equals("exit") || cmd.equals("type") || cmd.equals("pwd")) {
+                if (cmd.equals("echo") ||
+                    cmd.equals("exit") ||
+                    cmd.equals("type") ||
+                    cmd.equals("pwd") ||
+                    cmd.equals("cd")) {
+
                     System.out.println(cmd + " is a shell builtin");
-                } 
-                else {
+
+                } else {
+
                     String executablePath = findExecutable(cmd);
 
                     if (executablePath != null) {
@@ -71,13 +101,17 @@ public class Main {
                         processCommand.add(parts[i]);
                     }
 
+
                     ProcessBuilder pb = new ProcessBuilder(processCommand);
+
+                    pb.directory(currentDirectory);
                     pb.inheritIO();
 
                     Process process = pb.start();
                     process.waitFor();
 
-                } else {
+                } 
+                else {
                     System.out.println(command + ": command not found");
                 }
             }
