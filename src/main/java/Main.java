@@ -28,12 +28,16 @@ public class Main {
 
 
             if (command.equals("echo")) {
+
                 System.out.println(input.substring(5));
+
             }
 
 
             else if (command.equals("pwd")) {
-                System.out.println(currentDirectory.getAbsolutePath());
+
+                System.out.println(currentDirectory.getCanonicalPath());
+
             }
 
 
@@ -47,14 +51,28 @@ public class Main {
 
                 File newDirectory;
 
+
+                // Handle ~
+                if (target.equals("~")) {
+
+                    String home = System.getenv("HOME");
+
+                    newDirectory = new File(home);
+
+                }
+
                 // Absolute path
-                if (target.startsWith("/")) {
+                else if (target.startsWith("/")) {
+
                     newDirectory = new File(target);
+
                 }
 
                 // Relative path
                 else {
+
                     newDirectory = new File(currentDirectory, target);
+
                 }
 
 
@@ -62,12 +80,15 @@ public class Main {
 
                     currentDirectory = newDirectory.getCanonicalFile();
 
-                } else {
+                } 
+                else {
 
                     System.out.println(
                         "cd: " + target + ": No such file or directory"
                     );
+
                 }
+
             }
 
 
@@ -87,14 +108,20 @@ public class Main {
 
                     System.out.println(cmd + " is a shell builtin");
 
-                } else {
+                } 
+                else {
 
                     String executablePath = findExecutable(cmd);
 
                     if (executablePath != null) {
+
                         System.out.println(cmd + " is " + executablePath);
-                    } else {
+
+                    } 
+                    else {
+
                         System.out.println(cmd + ": not found");
+
                     }
                 }
             }
@@ -104,28 +131,40 @@ public class Main {
 
                 String executablePath = findExecutable(command);
 
+
                 if (executablePath != null) {
 
                     List<String> processCommand = new ArrayList<>();
 
                     processCommand.add(command);
 
+
                     for (int i = 1; i < parts.length; i++) {
+
                         processCommand.add(parts[i]);
+
                     }
 
 
                     ProcessBuilder pb = new ProcessBuilder(processCommand);
 
                     pb.directory(currentDirectory);
+
                     pb.inheritIO();
 
+
                     Process process = pb.start();
+
                     process.waitFor();
 
-                } else {
+
+                } 
+                else {
+
                     System.out.println(command + ": command not found");
+
                 }
+
             }
         }
 
@@ -137,21 +176,27 @@ public class Main {
 
         String pathEnv = System.getenv("PATH");
 
+
         if (pathEnv == null) {
             return null;
         }
 
+
         String[] directories = pathEnv.split(File.pathSeparator);
+
 
         for (String dir : directories) {
 
             Path filePath = Path.of(dir, command);
 
+
             if (Files.exists(filePath) && Files.isExecutable(filePath)) {
 
                 return filePath.toAbsolutePath().toString();
+
             }
         }
+
 
         return null;
     }
